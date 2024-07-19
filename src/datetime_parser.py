@@ -1,8 +1,6 @@
 """A parser for datetime, to obtain the desired information
 
 """
-
-
 class ParserNotConfiguredError(Exception):
     pass
 
@@ -35,7 +33,11 @@ class DateTimeParser:
 
         """
         if self._parserinfo is None: raise ParserNotConfiguredError()
-        return f'Parsed time: {datetime}'
+        info = {'plain_dt': datetime}
+        info['hour'] = 1
+        info['week_day'] = 1
+        info['month'] = 1
+        return info
 
     def set(self, info):
         """Sets the parser"""

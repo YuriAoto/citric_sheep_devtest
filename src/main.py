@@ -26,7 +26,6 @@ async def main():
     await asyncio.gather(system_ctrl.run_elevator(elevator),
                          system_ctrl.make_ml_training(elevator))
 
-
 if __name__ == '__main__':
     asyncio.run(main())
     logging.info('Done!')

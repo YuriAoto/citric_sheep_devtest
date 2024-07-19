@@ -4,10 +4,7 @@
 from datetime import datetime, timezone
 import logging
 
-
-def _now():
-    return datetime.now(timezone.utc)
-
+from util import now
 
 class Elevator:
     """The elevator
@@ -22,10 +19,14 @@ class Elevator:
         db (database.DemandDatabase) the database
         """
         self.db = db
-        self.floor = 0
+        self._floor = 0
         self.vacant = True
         self.resting = True
         self.mlp = None
+
+    @property
+    def floor(self):
+        return self._floor
 
     def demand(self, floor):
         """A demand for the elevator
@@ -36,12 +37,12 @@ class Elevator:
         
         """
         logging.debug('Demand at floor %s', floor)
-        self.db.add_demand(floor, _now())
+        self.db.add_demand(floor, now())
         self._goto(floor)
 
     def _goto(self, floor):
         """Change elevator position to floor"""
-        self.floor = floor
+        self._floor = floor
 
     def goto_if_vacant_AI(self, mlp):
         """If vacant, use prediction engine to change floor
@@ -52,4 +53,4 @@ class Elevator:
         
         """
         if self.vacant and self.resting and self.mlp is not None:
-            self._goto(self.mlp.predict(self.db.dt_parser.parse(_now())))
+            self._goto(self.mlp.predict(self.db.dt_parser.parse(now())))
