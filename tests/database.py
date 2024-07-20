@@ -15,17 +15,13 @@ logging.basicConfig(filename='test_elevator.log',
 
 @pytest.fixture
 def db():
-    new_db = database.DemandDatabase(None, filename='test_database.db')
+    new_db = database.DemandDatabase({}, filename='test_database.db')
     yield new_db
     new_db.reset()
     
 @pytest.fixture
 def basic_entry():
-    return {'floor': 1,
-            'hour': 1,
-            'week_day': 1,
-            'month': 1,
-            }
+    return {'floor': 1}
 
 def set_dt(entry):
     entry['plain_dt'] = util.now()
