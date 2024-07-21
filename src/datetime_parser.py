@@ -1,6 +1,7 @@
 """A parser for datetime, to obtain the desired information
 
 """
+import logging
 
 from sqlalchemy import Integer
 
@@ -33,6 +34,9 @@ class DateTimeParser:
         self._types = []
         self._funcs = []
         self._iter_index = 0
+
+    def __repr__(self):
+        return f'DateTimeParser: {self._names}'
 
     def __len__(self):
         return len(self._names)
@@ -86,14 +90,14 @@ class DateTimeParser:
         month
         year
         """
-        new_demand = cls()
+        new_dt_parser = cls()
         with open(filename) as f:
             for line in f:
                 if line.strip():
                     try:
-                        self.set_new_col(line.strip().lower())
+                        new_dt_parser.set_new_col(line.strip().lower())
                     except ValueError:
-                        new_dt_parserclear() 
+                        new_dt_parser.clear() 
                         raise ValueError(
                             'Invalid line in config file for DateTimeParser:\n{line}')
         return new_dt_parser
@@ -102,7 +106,6 @@ class DateTimeParser:
         """Sets new entry to the parser, only for a possible col_name"""
         try:
             col_type, dt_func = _possible_cols[col_name]
-            print(dt_func)
         except KeyError:
             raise ValueError('Invalid column DateTimeParser: {col_name}')
         self._names.append(col_name)

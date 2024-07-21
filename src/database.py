@@ -10,7 +10,7 @@ from sqlalchemy import DateTime, Integer, Table, Column
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session, registry
 from sqlalchemy.ext.declarative import declarative_base
 
-from datetime_parser import ParserNotConfiguredError
+import datetime_parser
 from util import now
 
 
@@ -22,7 +22,6 @@ def _demand_table_from_dtparser(D, dt_parser, metadata):
     table_args.append(Column('plain_dt', DateTime))
     table_args.append(Column('floor', Integer))
     for col_name, type_, dt_func in dt_parser:
-        print(col_name, type_, dt_func)
         table_args.append(Column(col_name, type_))
     return Table(*table_args)
 
@@ -31,7 +30,7 @@ class Base(DeclarativeBase):
 
 class _Demand:
     def __repr__(self):
-        return f'demand(dtid={self.dtid}), floor={self.floor}'
+        return f'demand (id={self.dtid}) at floor={self.floor}'
 
 
 class DemandDatabase:
@@ -44,15 +43,38 @@ class DemandDatabase:
     class Demand(_Demand):
         pass
 
-    def __init__(self, dt_parser, filename='elevator.db'):
+    def __init__(self,
+                 dt_parser_filename=None,
+                 dt_parser=None,
+                 filename='elevator.db',
+                 force_new_database=False):
         self._filename = filename
-        self.dt_parser = dt_parser
+        self.engine = None
+        self.mapper_registry = None
+        if dt_parser_filename is not None and dt_parser is None:
+            self._dt_parser = datetime_parser.DateTimeParser.from_file(dt_parser_filename)
+        elif dt_parser is not None and dt_parser_filename is None:
+            self._dt_parser = dt_parser
+        elif dt_parser is None and dt_parser is None:
+            self._dt_parser = datetime_parser.DateTimeParser()
+        else:
+            raise ValueError('Do not pass both dt_parser and dt_parser_filename')
+        self.set_sqlalchemy_map()
+
+    def add_parser(self, dt_parser):
+        self._dt_parser = dt_parser
+        self.set_sqlalchemy_map()
+
+    def set_sqlalchemy_map(self):
+        self.reset()
         self.engine = create_engine(f'sqlite:///{self.full_database_path}')
-        demand_table = _demand_table_from_dtparser(self.Demand, dt_parser, Base.metadata)
+        demand_table = _demand_table_from_dtparser(self.Demand,
+                                                   self._dt_parser,
+                                                   Base.metadata)
+        logging.debug('demand_table: %r', demand_table)
         Base.metadata.create_all(self.engine)
         self.mapper_registry = registry()
         self.mapper_registry.map_imperatively(self.Demand, demand_table)
-        
 
     @property
     def full_database_path(self):
@@ -60,9 +82,13 @@ class DemandDatabase:
 
     @property
     def is_set(self):
+        return self.engine is not None
+
+    @property
+    def file_exists(self):
         return os.path.isfile(self.full_database_path)
 
-    def reset(self):
+    def reset(self, remove_file=True):
         """Reset the database
         
         This method removes the database file and clears SQLAlchemy internals
@@ -71,7 +97,11 @@ class DemandDatabase:
         if self.is_set:
             self.mapper_registry.dispose()
             Base.metadata.clear()
-            os.remove(self.full_database_path)
+        if remove_file and self.file_exists:
+            os.rename(self.full_database_path,
+                      f'{self.full_database_path}_{now().strftime("%Y%m%d%H%M%S%f")}')
+        self.engine = None
+        self.mapper_registry = None
 
     def __len__(self):
         with Session(self.engine) as session:
@@ -87,11 +117,11 @@ class DemandDatabase:
     def add_demand(self, floor, time):
         """Add a demand to the database"""
         try:
-            info = self.dt_parser.parse(time)
+            info = self._dt_parser.parse(time)
             info['floor'] = floor
             self._add(info)
             logging.info('Put demand on database: floor %s at time %s', floor, time)
-        except ParserNotConfiguredError:
+        except datetime_parser.ParserNotConfiguredError:
             logging.warning('Put demand on database failed: parser not configured.')
 
     def get_all(self):
@@ -100,6 +130,13 @@ class DemandDatabase:
             all_demands = select(self.Demand)
             all_demands = [demand for demand in session.scalars(all_demands)]
         return all_demands
+
+    def get_full_str(self):
+        all_demands = self.get_all()
+        return '\n'.join([(repr(d) + ': '
+                           + ', '.join([f'{n}={d.__dict__[n]}' for n,_,_ in self._dt_parser])
+                           )
+                           for d in self.get_all()])
 
     def extract_demands(self):
         """Extract dt demands info and floors from database
@@ -128,3 +165,4 @@ class DemandDatabase:
             result = session.execute(sqlalcm_statement)
             session.commit()
         logging.info('Removed %s old entries from database', result.rowcount)
+

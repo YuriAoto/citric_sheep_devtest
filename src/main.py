@@ -19,9 +19,9 @@ logging.basicConfig(filename='elevator.log',
 
 async def main():
     """Main function that creates objects and gather the coroutine objects"""
-    dt_parser = datetime_parser.DateTimeParser()
-    dt_parser.set('The parser')
-    db = database.DemandDatabase(dt_parser)
+    db = database.DemandDatabase(dt_parser_filename='parser_config.txt',
+                                 force_new_database=False)
+    logging.debug('Current database:\n %s', db.get_full_str())
     elevator = elevator_model.Elevator(db)
     await asyncio.gather(system_ctrl.run_elevator(elevator),
                          system_ctrl.make_ml_training(elevator))
