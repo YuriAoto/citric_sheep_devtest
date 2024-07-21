@@ -24,7 +24,7 @@ async def main():
     """Main function that creates objects and gather the coroutine objects"""
     dt_parser_list, ml_when, older_than = parse_configfile(config_file)
     db = DemandDatabase(dt_parser=dt_parser_list,
-                        force_new_database=False)
+                        remove_old_db=True)
     logging.debug('Current database:\n %s', db.get_full_str())
     elevator = Elevator(db)
     await asyncio.gather(run_elevator(elevator),

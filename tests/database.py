@@ -60,15 +60,6 @@ def test_remove_old_2(db, basic_entry):
     assert len(db) == 2
 
 
-def test_parser(db, dt_parser_hw):
-    db.add_parser(dt_parser_hw)
-    now = util.now()
-    logging.debug('dtparser = %s', db._dt_parser)
-    db.add_demand(1, now)
-    last_demand = db.get_all()[-1]
-    logging.info(f'last demand: %s', last_demand)
-    assert 1 == 1
-
 def test_parser_2(db_hw):
     now = util.now()
     logging.debug('dtparser = %s', db_hw._dt_parser)

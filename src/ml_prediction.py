@@ -4,6 +4,7 @@
 import logging
 
 from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC
 import numpy as np
 
 from util import now
@@ -13,7 +14,7 @@ class MLPredictionError(Exception):
     pass
 
 
-def training(dt_demands, floors):
+def training(dt_demands, floors, ML_model='nn'):
     """Create a ML engine that returns a floor based that best fits on the db data
     
     Parameters:
@@ -26,21 +27,22 @@ def training(dt_demands, floors):
     A ML engine trained from Parameters
     
     """
-    clf = MLPClassifier(solver='lbfgs',
-                        alpha=1e-5,
-                        hidden_layer_sizes=(5, 2),
-                        random_state=1)
+    if ML_model == 'svm':
+        classifier = SVC(kernel='linear', C=1)
+    elif ML_model == 'nn':
+        classifier = MLPClassifier(solver='lbfgs',
+                                   alpha=1e-5,
+                                   hidden_layer_sizes=(10, 10),
+                                   random_state=1)
+    else:
+        raise ValueError(f'Unknown ML model: {ML_model}')
     logging.debug('ML training is starting ...')
     try:
-        clf.fit(dt_demands, floors)
+        classifier.fit(dt_demands, floors)
     except ValueError:
         raise MLPredictionError(str(ValueError))
     logging.debug('ML training is complete!')
-    return clf
-
-
-def predict_now(mlp, dt_parser):
-    return predict(mlp, dt_parser, now())
+    return classifier
 
 
 def predict(mlp, dt_parser, dt):

@@ -111,10 +111,10 @@ async def make_ml_training(elevator, wait_for):
         await asyncio.sleep(wait_for.total_seconds())
         logging.info('Making ML training')
         try:
-            all_demands = elevator.db.extract_demands()
-            logging.debug('All demands: datetimes:\n%s', all_demands[0])
-            logging.debug('All demands: floors:\n%s', all_demands[1])
-            mlp = ml_prediction.training(*all_demands)
+            dt_demands, floors = elevator.db.extract_demands()
+            logging.debug('All demands: datetimes (shape=%s):\n%s', dt_demands.shape, dt_demands)
+            logging.debug('All demands: floors (shape=%s):\n%s', floors.shape, floors)
+            mlp = ml_prediction.training(dt_demands, floors)
         except ml_prediction.MLPredictionError:
             ex_type, ex, tb = sys.exc_info()
             logging.error(traceback_exception(

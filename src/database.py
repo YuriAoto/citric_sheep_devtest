@@ -57,12 +57,12 @@ class DemandDatabase:
     def __init__(self,
                  dt_parser=None,
                  filename='elevator.db',
-                 force_new_database=False):
+                 remove_old_db=False):
         self._filename = filename
         self.engine = None
         self.mapper_registry = None
         self._dt_parser = _get_dt_parser(dt_parser)
-        self.set_sqlalchemy_map()
+        self.set_sqlalchemy_map(remove_old_db=remove_old_db)
 
     @property
     def dt_parser(self):
@@ -72,8 +72,8 @@ class DemandDatabase:
         self._dt_parser = dt_parser
         self.set_sqlalchemy_map()
 
-    def set_sqlalchemy_map(self):
-        self.reset()
+    def set_sqlalchemy_map(self, remove_old_db=False):
+        self.reset(remove_old_db=remove_old_db)
         self.engine = create_engine(f'sqlite:///{self.full_database_path}')
         demand_table = _demand_table_from_dtparser(self.Demand,
                                                    self.dt_parser,
@@ -95,7 +95,7 @@ class DemandDatabase:
     def file_exists(self):
         return os.path.isfile(self.full_database_path)
 
-    def reset(self, remove_file=True):
+    def reset(self, remove_old_db=True):
         """Reset the database
         
         This method removes the database file and clears SQLAlchemy internals
@@ -104,7 +104,7 @@ class DemandDatabase:
         if self.is_set:
             self.mapper_registry.dispose()
             Base.metadata.clear()
-        if remove_file and self.file_exists:
+        if remove_old_db and self.file_exists:
             os.rename(self.full_database_path,
                       f'{self.full_database_path}_{now().strftime("%Y%m%d%H%M%S%f")}')
         self.engine = None

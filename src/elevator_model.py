@@ -51,7 +51,7 @@ class Elevator:
         """Make prediction of the best resting floor at the given datetime"""
         if dt is None: dt = now()
         if self.mlp is not None:
-            predicted_floor = ml_prediction.predict_now(self.mlp, self.db.dt_parser)[0]
+            predicted_floor = ml_prediction.predict(self.mlp, self.db.dt_parser, dt)[0]
             logging.debug('Predicted floor at %s: %s', dt, predicted_floor)
             return predicted_floor
         else:
