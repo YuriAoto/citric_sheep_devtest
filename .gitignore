@@ -1,5 +1,4 @@
-elevator.log
-elevator_demand.log
+*.log
 venv_elevator_test/
 tests/__pycache__
 src/__pycache__

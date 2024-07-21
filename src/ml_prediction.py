@@ -32,6 +32,7 @@ def training(dt_demands, floors, ML_model='nn'):
     elif ML_model == 'nn':
         classifier = MLPClassifier(solver='lbfgs',
                                    alpha=1e-5,
+                                   max_iter=200,
                                    hidden_layer_sizes=(10, 10),
                                    random_state=1)
     else:

@@ -65,6 +65,7 @@ def parse_configfile(filename):
     dt_parser_list = []
     with open(filename) as f:
         for line in f:
+            line = line.split('#')[0]
             if ':' in line:
                 k, v = tuple(map(lambda x: x.strip(), line.split(':')))
                 logging.debug('Parsing line: key=%s with value=%s, from line\n:%s',

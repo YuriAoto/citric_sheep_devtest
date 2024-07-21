@@ -1,0 +1,5 @@
+month
+week day
+hour
+ML traning at each : 30 days
+remove demands older than : 730 days
