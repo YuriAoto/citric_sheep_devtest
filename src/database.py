@@ -34,6 +34,15 @@ class _Demand:
     def __repr__(self):
         return f'demand (id={self.dtid}) at floor={self.floor}'
 
+def _get_dt_parser(dt_parser):
+    if isinstance(dt_parser, datetime_parser.DateTimeParser):
+        return dt_parser
+    if isinstance(dt_parser, str):
+        return datetime_parser.DateTimeParser.from_file(dt_parser)
+    if isinstance(dt_parser, list):
+        return datetime_parser.DateTimeParser.from_list(dt_parser)
+    if dt_parser is None:
+        return datetime_parser.DateTimeParser()
 
 class DemandDatabase:
     """Database for elevator demands
@@ -46,21 +55,13 @@ class DemandDatabase:
         pass
 
     def __init__(self,
-                 dt_parser_filename=None,
                  dt_parser=None,
                  filename='elevator.db',
                  force_new_database=False):
         self._filename = filename
         self.engine = None
         self.mapper_registry = None
-        if dt_parser_filename is not None and dt_parser is None:
-            self._dt_parser = datetime_parser.DateTimeParser.from_file(dt_parser_filename)
-        elif dt_parser is not None and dt_parser_filename is None:
-            self._dt_parser = dt_parser
-        elif dt_parser is None and dt_parser is None:
-            self._dt_parser = datetime_parser.DateTimeParser()
-        else:
-            raise ValueError('Do not pass both dt_parser and dt_parser_filename')
+        self._dt_parser = _get_dt_parser(dt_parser)
         self.set_sqlalchemy_map()
 
     @property

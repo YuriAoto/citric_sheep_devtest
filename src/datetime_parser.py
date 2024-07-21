@@ -90,6 +90,27 @@ class DateTimeParser:
         return [dt_func(datetime) for _, _, dt_func in self]
 
     @classmethod
+    def from_list(cls, info):
+        """Creates a DateTimeParser instance from a list of strings
+        
+        Each string is an information that will be used to parse the
+        datetime. Possible values are:
+        hour
+        week day
+        month day
+        month
+        year
+        """
+        new_dt_parser = cls()
+        for entry in info:
+            try:
+                new_dt_parser.set_new_col(entry.strip().lower())
+            except ValueError:
+                new_dt_parser.clear() 
+                raise ValueError(f'Invalid value for DateTimeParser: {entry}')
+        return new_dt_parser
+
+    @classmethod
     def from_file(cls, filename):
         """Creates a DateTimeParser instance from file
         
@@ -111,7 +132,7 @@ class DateTimeParser:
                     except ValueError:
                         new_dt_parser.clear() 
                         raise ValueError(
-                            'Invalid line in config file for DateTimeParser:\n{line}')
+                            f'Invalid line in config file for DateTimeParser:\n{line}')
         return new_dt_parser
 
     def set_new_col(self, col_name):
@@ -119,7 +140,7 @@ class DateTimeParser:
         try:
             col_type, dt_func = _possible_cols[col_name]
         except KeyError:
-            raise ValueError('Invalid column DateTimeParser: {col_name}')
+            raise ValueError(f'Invalid column DateTimeParser: {col_name}')
         self._names.append(col_name)
         self._types.append(col_type)
         self._funcs.append(dt_func)

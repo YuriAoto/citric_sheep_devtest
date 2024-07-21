@@ -9,6 +9,10 @@ import numpy as np
 from util import now
 
 
+class MLPredictionError(Exception):
+    pass
+
+
 def training(dt_demands, floors):
     """Create a ML engine that returns a floor based that best fits on the db data
     
@@ -27,7 +31,10 @@ def training(dt_demands, floors):
                         hidden_layer_sizes=(5, 2),
                         random_state=1)
     logging.debug('ML training is starting ...')
-    clf.fit(dt_demands, floors)
+    try:
+        clf.fit(dt_demands, floors)
+    except ValueError:
+        raise MLPredictionError(str(ValueError))
     logging.debug('ML training is complete!')
     return clf
 

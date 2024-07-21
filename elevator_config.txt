@@ -1,0 +1,3 @@
+hour
+ML traning at each : 10 seconds
+remove demands older than : 100 days

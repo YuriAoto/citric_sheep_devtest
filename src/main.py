@@ -5,26 +5,31 @@ Citric Sheep Tech Test
 Yuri Alexandre Aoto
 
 """
-
 import logging
 import asyncio
 
-import elevator_model, datetime_parser, database, system_ctrl
+from database import DemandDatabase
+from util import parse_configfile
+from elevator_model import Elevator
+from system_ctrl import run_elevator, make_ml_training, clean_older_entries
 
 logging.basicConfig(filename='elevator.log',
                     encoding='utf-8',
                     filemode='w',
                     level=logging.DEBUG)
 
+config_file = 'elevator_config.txt'
 
 async def main():
     """Main function that creates objects and gather the coroutine objects"""
-    db = database.DemandDatabase(dt_parser_filename='parser_config.txt',
-                                 force_new_database=False)
+    dt_parser_list, ml_when, older_than = parse_configfile(config_file)
+    db = DemandDatabase(dt_parser=dt_parser_list,
+                        force_new_database=False)
     logging.debug('Current database:\n %s', db.get_full_str())
-    elevator = elevator_model.Elevator(db)
-    await asyncio.gather(system_ctrl.run_elevator(elevator),
-                         system_ctrl.make_ml_training(elevator))
+    elevator = Elevator(db)
+    await asyncio.gather(run_elevator(elevator),
+                         make_ml_training(elevator, ml_when),
+                         clean_older_entries(db, older_than))
 
 if __name__ == '__main__':
     asyncio.run(main())
