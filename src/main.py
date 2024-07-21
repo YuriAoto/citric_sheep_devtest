@@ -13,12 +13,12 @@ from util import parse_configfile
 from elevator_model import Elevator
 from system_ctrl import run_elevator, make_ml_training, clean_older_entries
 
-logging.basicConfig(filename='elevator.log',
+logging.basicConfig(filename='controller.log',
                     encoding='utf-8',
                     filemode='w',
                     level=logging.DEBUG)
 
-config_file = 'elevator_config.txt'
+config_file = 'config.txt'
 
 async def main():
     """Main function that creates objects and gather the coroutine objects"""

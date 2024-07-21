@@ -14,7 +14,10 @@ _socket_name = '.elevator_connection.unix.socket'
 
 def _decode_message(msg):
     floor, dt = msg.decode().strip().split()
-    floor = int(floor[0])
+    try:
+        floor = int(floor)
+    except ValueError:
+        pass
     dt = datetime.fromisoformat(dt)
     logging.debug('Decoded message: floor = %s, datetime = %s', floor, dt)
     return floor, dt
@@ -30,16 +33,35 @@ async def _elevator_demand_read_response(reader):
     result_bytes = await reader.readline()
     response = result_bytes.decode()
     logging.debug('Received response: %s,', response.strip())
+    try:
+        prediction = int(response)
+    except ValueError:
+        prediction = None
+    return prediction
 
-async def _handle_demands(reader, writer):
+def _elevator_interaction(floor, dt, elevator):
+    """Send a demand or ask the prediction to the elevator."""
+    if isinstance(floor, int):
+        elevator.demand(floor, dt=dt)
+        msg_back = f'Demand received\n'.encode()
+    else:
+        predicted_floor = elevator.predict_best_resting_floor(dt)
+        msg_back = f'{predicted_floor}\n'.encode()
+    return msg_back
+
+async def _handle_demands(reader, writer, elevator):
     msg_bytes = await reader.readline()
     try:
         floor, dt = _decode_message(msg_bytes)
     except Exception as e:
         logging.error('When decoding message: %s', e)
-    logging.debug('Demand from %s, at %s', floor, dt)
-    ### where is it?? elevator.demand(floor)
-    writer.write(msg_bytes)
+    logging.debug('Request %s, at %s', floor, dt)
+    try:
+        msg_back = _elevator_interaction(floor, dt, elevator)
+    except Exception as e:
+        logging.error('When decoding message: %s', e)
+    logging.debug('We will send now this message back: %s', msg_back)
+    writer.write(msg_back)
     await writer.drain()
     writer.close()
     await writer.wait_closed()
@@ -61,16 +83,17 @@ async def elevator_demand_main(floor, dt):
     reader, writer = await asyncio.open_unix_connection(_socket_name)
     logging.debug('Elevator demand: connected')
     await _elevator_demand_send_message(writer, floor, dt)
-    await _elevator_demand_read_response(reader)
+    prediction = await _elevator_demand_read_response(reader)
     logging.debug('Elevator demand: Shutting down connection.')
     writer.close()
     await writer.wait_closed()
-
+    return prediction
 
 async def run_elevator(elevator):
     """Run the elevator, waiting for demands from unix socket"""
-    elevator_server = await asyncio.start_unix_server(_handle_demands,
-                                                      _socket_name)
+    elevator_server = await asyncio.start_unix_server(
+        lambda r, w: _handle_demands(r, w, elevator),
+        _socket_name)
     async with elevator_server:
         logging.info('Elevator server has started.')
         await elevator_server.serve_forever()
@@ -89,11 +112,13 @@ async def make_ml_training(elevator, wait_for):
         logging.info('Making ML training')
         try:
             all_demands = elevator.db.extract_demands()
-            logging.debug('All demands:\n%s', all_demands)
+            logging.debug('All demands: datetimes:\n%s', all_demands[0])
+            logging.debug('All demands: floors:\n%s', all_demands[1])
             mlp = ml_prediction.training(*all_demands)
         except ml_prediction.MLPredictionError:
             ex_type, ex, tb = sys.exc_info()
-            logging.error(traceback_exception('Error at the ML prediction:'))
+            logging.error(traceback_exception(
+                'Error at the ML training. Skipping making new training this time'))
         else:
             elevator.mlp = mlp
 
