@@ -18,7 +18,7 @@ async def make_ml_training(elevator):
     """Make ML training at specified times"""
     for i in range(2):
         logging.info('Making ML training')
-        mlp = ml_prediction.create_predictor_from_db(*elevator.db.extract_demands())
+        mlp = ml_prediction.training(*elevator.db.extract_demands())
         elevator.mlp = mlp
         await asyncio.sleep(4)
 
@@ -29,4 +29,3 @@ async def clean_older_entries(db, older_than):
         logging.info('Remiving older entries from database')
         db.remove_old(older_than)
         await asyncio.sleep(8)
-

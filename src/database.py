@@ -5,7 +5,9 @@ import os
 import logging
 import datetime
 
-from sqlalchemy import create_engine, select, delete
+import pandas as pd
+
+from sqlalchemy import create_engine, select, delete, literal_column
 from sqlalchemy import DateTime, Integer, Table, Column
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session, registry
 from sqlalchemy.ext.declarative import declarative_base
@@ -61,6 +63,10 @@ class DemandDatabase:
             raise ValueError('Do not pass both dt_parser and dt_parser_filename')
         self.set_sqlalchemy_map()
 
+    @property
+    def dt_parser(self):
+        return self._dt_parser
+
     def add_parser(self, dt_parser):
         self._dt_parser = dt_parser
         self.set_sqlalchemy_map()
@@ -69,7 +75,7 @@ class DemandDatabase:
         self.reset()
         self.engine = create_engine(f'sqlite:///{self.full_database_path}')
         demand_table = _demand_table_from_dtparser(self.Demand,
-                                                   self._dt_parser,
+                                                   self.dt_parser,
                                                    Base.metadata)
         logging.debug('demand_table: %r', demand_table)
         Base.metadata.create_all(self.engine)
@@ -117,7 +123,7 @@ class DemandDatabase:
     def add_demand(self, floor, time):
         """Add a demand to the database"""
         try:
-            info = self._dt_parser.parse(time)
+            info = self.dt_parser.parse(time)
             info['floor'] = floor
             self._add(info)
             logging.info('Put demand on database: floor %s at time %s', floor, time)
@@ -131,10 +137,14 @@ class DemandDatabase:
             all_demands = [demand for demand in session.scalars(all_demands)]
         return all_demands
 
+    def get_all_pandas(self):
+        logging.debug('Getting all into pandas df')
+        return  pd.read_sql_query(select(self.Demand), self.engine)
+    
     def get_full_str(self):
         all_demands = self.get_all()
         return '\n'.join([(repr(d) + ': '
-                           + ', '.join([f'{n}={d.__dict__[n]}' for n,_,_ in self._dt_parser])
+                           + ', '.join([f'{n}={d.__dict__[n]}' for n,_,_ in self.dt_parser])
                            )
                            for d in self.get_all()])
 
@@ -146,8 +156,11 @@ class DemandDatabase:
         The datetime and floor demands, in separate objects,
         from the db database.
         """
-        dt_demands = None
-        floors = None
+        floors = pd.read_sql_query(select(self.Demand.floor),
+                                   self.engine)['floor']
+        dt_demands = pd.read_sql_query(select(*[self.Demand.__dict__[n]
+                                                for n,_,_ in self.dt_parser]),
+                                       self.engine)
         return dt_demands, floors
 
     def remove_old(self, older_than):

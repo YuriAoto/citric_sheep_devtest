@@ -71,11 +71,23 @@ class DateTimeParser:
         -------
 
         """
-        if not len(self): raise ParserNotConfiguredError()
         info = {'plain_dt': datetime}
         for col_name, col_type, dt_func in self:
             info[col_name] = dt_func(datetime)
         return info
+
+    def parse_list(self, datetime):
+        """Parse the time according to current parser, returning a list
+        
+        Parameters:
+        -----------
+        datetime ()
+        
+        Return:
+        -------
+        A list with the parsed information only
+        """
+        return [dt_func(datetime) for _, _, dt_func in self]
 
     @classmethod
     def from_file(cls, filename):

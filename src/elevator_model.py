@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import logging
 
 from util import now
+import ml_prediction
 
 class Elevator:
     """The elevator
@@ -44,13 +45,9 @@ class Elevator:
         """Change elevator position to floor"""
         self._floor = floor
 
-    def goto_if_vacant_AI(self, mlp):
+    def goto_if_vacant_AI(self):
         """If vacant, use prediction engine to change floor
-        
-        Parameters:
-        -----------
-        mlp ()  The machine learning predictor
         
         """
         if self.vacant and self.resting and self.mlp is not None:
-            self._goto(self.mlp.predict(self.db.dt_parser.parse(now())))
+            self._goto(ml_prediction.predict_now(self.mlp, self.db.dt_parser))

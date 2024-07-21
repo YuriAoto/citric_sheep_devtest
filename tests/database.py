@@ -7,45 +7,21 @@ import pytest
 
 import database
 import util
-import datetime_parser
+
+from .fixtures import *
 
 logging.basicConfig(filename='test_elevator.log',
                     encoding='utf-8',
                     filemode='w',
                     level=logging.DEBUG)
 
-@pytest.fixture
-def db():
-    new_db = database.DemandDatabase(filename='test_database.db')
-    logging.info('Created new database for fixture')
-    yield new_db
-    new_db.reset()
- 
-
-@pytest.fixture
-def dt_parser_hw():
-    parser = datetime_parser.DateTimeParser()
-    parser.set_new_col('hour')
-    parser.set_new_col('week day')
-    logging.debug(f'Parser hw: %r', parser)
-    yield parser
-
-@pytest.fixture
-def db_hw(dt_parser_hw):
-    new_db = database.DemandDatabase(dt_parser=dt_parser_hw, filename='test_database.db')
-    logging.info('Created new database for fixture')
-    yield new_db
-    new_db.reset()
-
 
 @pytest.fixture
 def basic_entry():
     return {'floor': 1}
 
-
 def set_dt(entry):
     entry['plain_dt'] = util.now()
-
 
 def test_set_reset(db):
     assert db.is_set
@@ -100,3 +76,17 @@ def test_parser_2(db_hw):
     last_demand = db_hw.get_all()[-1]
     logging.info(f'last demand: %s', last_demand)
     assert 1 == 1
+
+def test_extract_demands(db_hw):
+    db_hw.add_demand(3, datetime.datetime(2024, 7, 21, hour=1))
+    db_hw.add_demand(1, datetime.datetime(2024, 7, 21, hour=3))
+    db_hw.add_demand(2, datetime.datetime(2024, 7, 21, hour=7))
+    dt_demands, floors = db_hw.extract_demands()
+    logging.debug('floors:\n%s', floors)
+    logging.debug('dt_demands:\n%s', dt_demands)
+    assert floors.iloc[0] == 3
+    assert floors.iloc[1] == 1
+    assert floors.iloc[2] == 2
+    assert dt_demands['hour'].iloc[0] == 1
+    assert dt_demands['hour'].iloc[1] == 3
+    assert dt_demands['hour'].iloc[2] == 7

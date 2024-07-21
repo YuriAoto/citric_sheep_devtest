@@ -5,15 +5,13 @@ from sqlalchemy import Integer
 
 import util
 import datetime_parser
+from .fixtures import *
 
 def test_empty_parser():
     parser = datetime_parser.DateTimeParser()
     assert not parser._names
     assert not parser._types
     assert not parser._funcs
-    dt = util.now()
-    with pytest.raises(datetime_parser.ParserNotConfiguredError):
-        parser.parse(dt)
 
 def test_iter():
     parser = datetime_parser.DateTimeParser()
@@ -81,3 +79,9 @@ def test_set_new_col_inner(datetime_2024_7_19__2_5,
     assert parser._types[-1] == Integer
     assert parser._funcs[-1](datetime_2024_7_19__2_5) == 4
     assert parser._funcs[-1](datetime_1986_6_7__17_35) == 5
+
+
+def test_parse(dt_parser_hw):
+    parsed_date = dt_parser_hw.parse_list(datetime.datetime(2024, 7, 1, hour=1))
+    logging.debug('parsed date: %s', parsed_date)
+    assert parsed_date == [1, 0]
